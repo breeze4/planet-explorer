@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planet Explorer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="ui-overlay" class="hidden">
+            <div id="planet-info">
+                <h2 id="planet-name"></h2>
+                <p id="planet-description"></p>
+                <button id="leave-planet">Leave Planet</button>
+            </div>
+            <div id="hud">
+                <div id="boost-meter">
+                    <div id="boost-fill"></div>
+                </div>
+                <div id="message-display"></div>
+            </div>
+        </div>
+        <div id="game-controls">
+            <div id="speed-control">
+                <label for="speed-slider">Ship Speed: <span id="speed-value">30%</span></label>
+                <input type="range" id="speed-slider" min="10" max="150" value="30" step="5">
+            </div>
+            <div id="instructions">
+                <p><strong>WASD</strong>: Move ship</p>
+                <p><strong>Space</strong>: Boost</p>
+                <p><strong>E</strong>: Land on planet (when over a planet and moving slowly)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/planet.js"></script>
+    <script src="js/spaceship.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html> 

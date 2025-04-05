@@ -1,0 +1,193 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #000;
+    overflow: hidden;
+    font-family: 'Arial', sans-serif;
+    color: white;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+#game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+}
+
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#ui-overlay.hidden {
+    display: none;
+}
+
+#planet-info {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid #4dacff;
+    border-radius: 10px;
+    padding: 20px;
+    width: 400px;
+    text-align: center;
+    pointer-events: auto;
+    display: none;
+    z-index: 20;
+}
+
+#planet-info.visible {
+    display: block;
+}
+
+#planet-name {
+    color: #4dacff;
+    margin-bottom: 10px;
+}
+
+#planet-description {
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+#leave-planet {
+    background-color: #4dacff;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+#leave-planet:hover {
+    background-color: #7fc5ff;
+}
+
+#hud {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#boost-meter {
+    width: 200px;
+    height: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid #4dacff;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#boost-fill {
+    height: 100%;
+    width: 0;
+    background-color: #4dacff;
+    transition: width 0.1s;
+}
+
+#message-display {
+    color: white;
+    font-size: 14px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid rgba(77, 172, 255, 0.5);
+    max-width: 300px;
+    min-height: 20px;
+    transition: opacity 0.3s;
+    opacity: 0;
+}
+
+#message-display.active {
+    opacity: 1;
+}
+
+/* Game controls */
+#game-controls {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid #4dacff;
+    border-radius: 10px;
+    padding: 15px;
+    width: 300px;
+}
+
+#speed-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+#speed-control label {
+    font-size: 14px;
+    color: #fff;
+}
+
+#speed-slider {
+    width: 100%;
+    height: 10px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #111;
+    border-radius: 5px;
+    outline: none;
+}
+
+#speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #4dacff;
+    cursor: pointer;
+}
+
+#speed-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #4dacff;
+    cursor: pointer;
+    border: none;
+}
+
+#instructions {
+    margin-top: 10px;
+    border-top: 1px solid rgba(77, 172, 255, 0.3);
+    padding-top: 10px;
+}
+
+#instructions p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #ddd;
+    margin: 3px 0;
+} 
