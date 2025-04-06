@@ -95,9 +95,9 @@ export class EntityManager {
                     const angleToPlanet = Math.atan2(dy, dx);
                     const overlap = collisionThreshold - distance;
                     
-                    // Push ship back slightly
-                    ship.x += Math.cos(angleToPlanet) * overlap * 0.1; // Gentle push back
-                    ship.y += Math.sin(angleToPlanet) * overlap * 0.1;
+                    // Push ship back slightly (COMMENTED OUT TO ALLOW FLYING OVER)
+                    // ship.x += Math.cos(angleToPlanet) * overlap * 0.1; 
+                    // ship.y += Math.sin(angleToPlanet) * overlap * 0.1;
                     
                     // Optional: Reduce speed upon collision
                     // ship.speed *= 0.95;
