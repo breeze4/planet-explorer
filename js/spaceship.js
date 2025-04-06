@@ -11,21 +11,40 @@ class Spaceship {
    * @param {number} x - Initial X coordinate
    * @param {number} y - Initial Y coordinate
    * @param {number} [speedScale=0.3] - Speed scaling factor (1.0 = 100% speed)
+   * @param {number} [width=42] - Optional width of the spaceship
+   * @param {number} [height=21] - Optional height of the spaceship
    */
-  constructor(x, y, speedScale = 0.3) {
+  constructor(x, y, speedScale = 0.3, width = 42, height = 21) {
     /** @type {number} */
     this.x = x;
     /** @type {number} */
     this.y = y;
     /** @type {number} */
-    this.width = 30;
+    this.width = width;
     /** @type {number} */
-    this.height = 15;
+    this.height = height;
     /** @type {number} */
     this.rotation = 0;
     /** @type {number} */
     this.speed = 0;
     
+    // Sprite loading
+    /** @type {Image} */
+    this.sprite = new Image();
+    /** @type {boolean} */
+    this.spriteLoaded = false;
+    this.sprite.onload = () => {
+      this.spriteLoaded = true;
+      // Optional: Update width/height based on image natural dimensions
+      // this.width = this.sprite.naturalWidth;
+      // this.height = this.sprite.naturalHeight;
+    };
+    this.sprite.onerror = () => {
+      console.error(`Error loading sprite: assets/triangle_ship.png`);
+      // Keep spriteLoaded = false, fallback drawing will be used
+    };
+    this.sprite.src = 'assets/triangle_ship.png'; // Path to the sprite
+
     // Speed configuration
     /** @type {number} */
     this.speedScale = speedScale;
@@ -66,7 +85,7 @@ class Spaceship {
     
     // Collision properties
     /** @type {number} */
-    this.radius = 15;
+    this.radius = this.width / 2;
     
     // Controls state
     /** @type {Object<string, boolean>} */
@@ -82,6 +101,17 @@ class Spaceship {
     // Set up event listeners for controls
     window.addEventListener('keydown', this.handleKeyDown.bind(this));
     window.addEventListener('keyup', this.handleKeyUp.bind(this));
+  }
+  
+  /**
+   * Set a new size for the spaceship
+   * @param {number} newWidth - The new width
+   * @param {number} newHeight - The new height
+   */
+  setSize(newWidth, newHeight) {
+    this.width = newWidth;
+    this.height = newHeight;
+    this.radius = this.width / 2; // Update radius based on new width
   }
   
   /**
@@ -233,21 +263,27 @@ class Spaceship {
     ctx.translate(screenX, screenY);
     ctx.rotate(this.rotation);
     
-    // Draw spaceship body
-    ctx.beginPath();
-    ctx.moveTo(this.width / 2, 0);
-    ctx.lineTo(-this.width / 2, this.height / 2);
-    ctx.lineTo(-this.width / 3, 0);
-    ctx.lineTo(-this.width / 2, -this.height / 2);
-    ctx.closePath();
+    // Draw spaceship sprite if loaded, otherwise draw fallback shape
+    if (this.spriteLoaded) {
+      // Draw sprite centered at the ship's origin
+      ctx.drawImage(this.sprite, -this.width / 2, -this.height / 2, this.width, this.height);
+    } else {
+      // Fallback drawing: Draw original spaceship body
+      ctx.beginPath();
+      ctx.moveTo(this.width / 2, 0);
+      ctx.lineTo(-this.width / 2, this.height / 2);
+      ctx.lineTo(-this.width / 3, 0);
+      ctx.lineTo(-this.width / 2, -this.height / 2);
+      ctx.closePath();
+      
+      ctx.fillStyle = '#4dacff'; // Default color if sprite fails
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
     
-    ctx.fillStyle = this.isBoosting ? '#ff9900' : '#4dacff';
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    
-    // Draw engine glow when accelerating or boosting
+    // Draw engine glow when accelerating or boosting (drawn on top of sprite or fallback)
     if (this.keys.w || this.isBoosting) {
       ctx.beginPath();
       ctx.moveTo(-this.width / 3, 0);

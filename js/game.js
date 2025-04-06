@@ -25,23 +25,35 @@ class Game {
     // Set up speed controls
     this.setupSpeedControls();
     
+    // Store base ship dimensions
+    this.baseShipWidth = 42;
+    this.baseShipHeight = 21;
+    
     // Resize canvas to full window
     this.resizeCanvas();
     window.addEventListener('resize', this.resizeCanvas.bind(this));
     
     // Set up game state
+    /** @type {UI} */
+    this.ui = new UI();
+    
+    // Get initial size scale from UI
+    const initialSizeScale = this.ui.getInitialSizeScale();
+    const initialShipWidth = this.baseShipWidth * initialSizeScale;
+    const initialShipHeight = this.baseShipHeight * initialSizeScale;
+    
     /** @type {Spaceship} */
     this.spaceship = new Spaceship(
       window.innerWidth / 2, 
       window.innerHeight / 2,
-      this.config.speedScale
+      this.config.speedScale, // Pass initial speed scale
+      initialShipWidth,       // Pass initial calculated width
+      initialShipHeight       // Pass initial calculated height
     );
     /** @type {Array<Planet>} */
     this.planets = [];
     /** @type {Array<Object>} */
     this.stars = [];
-    /** @type {UI} */
-    this.ui = new UI();
     
     // Camera position
     /** @type {number} */
@@ -65,6 +77,9 @@ class Game {
     // Start the game loop
     this.lastTime = performance.now();
     requestAnimationFrame(this.gameLoop.bind(this));
+
+    // Register UI listeners
+    this.setupUIListeners();
   }
   
   /**
@@ -338,6 +353,23 @@ class Game {
       Math.PI * 2
     );
     this.ctx.fill();
+  }
+
+  /**
+   * Sets up listeners for UI controls like sliders.
+   */
+  setupUIListeners() {
+    // Listener for speed changes (assuming ui.js handles this now)
+    this.ui.registerSpeedChangeListener((newScale) => {
+      this.setGameSpeed(newScale); // Reuse existing speed setting logic
+    });
+
+    // Listener for size changes
+    this.ui.registerSizeChangeListener((newScale) => {
+      const newWidth = this.baseShipWidth * newScale;
+      const newHeight = this.baseShipHeight * newScale;
+      this.spaceship.setSize(newWidth, newHeight);
+    });
   }
 }
 

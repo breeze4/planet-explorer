@@ -25,6 +25,22 @@ class UI {
     /** @type {HTMLElement} */
     this.messageDisplay = document.getElementById('message-display');
     
+    // Speed Slider Elements (Assuming these might exist or be added similarly)
+    /** @type {HTMLInputElement | null} */
+    this.speedScaleSlider = document.getElementById('speed-scale-slider');
+    /** @type {HTMLElement | null} */
+    this.speedScaleValue = document.getElementById('speed-scale-value');
+    /** @type {Function | null} */
+    this.onSpeedChangeCallback = null;
+    
+    // Size Slider Elements
+    /** @type {HTMLInputElement | null} */
+    this.sizeScaleSlider = document.getElementById('size-scale-slider');
+    /** @type {HTMLElement | null} */
+    this.sizeScaleValue = document.getElementById('size-scale-value');
+    /** @type {Function | null} */
+    this.onSizeChangeCallback = null;
+    
     /** @type {boolean} */
     this.isPlanetViewActive = false;
     /** @type {number|null} */
@@ -32,6 +48,67 @@ class UI {
     
     // Set up event listeners
     this.leaveButton.addEventListener('click', this.hidePlanetInfo.bind(this));
+    
+    // Set up slider listeners if elements exist
+    if (this.speedScaleSlider && this.speedScaleValue) {
+      this.speedScaleSlider.addEventListener('input', (event) => {
+        const scale = parseFloat(event.target.value);
+        this.speedScaleValue.textContent = `${scale.toFixed(1)}x`;
+        if (this.onSpeedChangeCallback) {
+          this.onSpeedChangeCallback(scale);
+        }
+      });
+    }
+
+    if (this.sizeScaleSlider && this.sizeScaleValue) {
+      this.sizeScaleSlider.addEventListener('input', (event) => {
+        const scale = parseFloat(event.target.value);
+        this.sizeScaleValue.textContent = `${scale.toFixed(1)}x`;
+        if (this.onSizeChangeCallback) {
+          this.onSizeChangeCallback(scale);
+        }
+      });
+    }
+  }
+  
+  /**
+   * Register a listener for speed scale changes
+   * @param {Function} callback - Function to call with the new scale value
+   */
+  registerSpeedChangeListener(callback) {
+    this.onSpeedChangeCallback = callback;
+    // Optionally call immediately with initial value
+    // if (this.speedScaleSlider) {
+    //   callback(parseFloat(this.speedScaleSlider.value));
+    // }
+  }
+
+  /**
+   * Register a listener for size scale changes
+   * @param {Function} callback - Function to call with the new scale value
+   */
+  registerSizeChangeListener(callback) {
+    this.onSizeChangeCallback = callback;
+    // Optionally call immediately with initial value
+    // if (this.sizeScaleSlider) {
+    //   callback(parseFloat(this.sizeScaleSlider.value));
+    // }
+  }
+
+  /**
+   * Get the initial value of the speed scale slider
+   * @returns {number} Initial speed scale
+   */
+  getInitialSpeedScale() {
+    return this.speedScaleSlider ? parseFloat(this.speedScaleSlider.value) : 0.3; // Default if slider not found
+  }
+  
+  /**
+   * Get the initial value of the size scale slider
+   * @returns {number} Initial size scale
+   */
+  getInitialSizeScale() {
+    return this.sizeScaleSlider ? parseFloat(this.sizeScaleSlider.value) : 1.4; // Default if slider not found
   }
   
   /**
