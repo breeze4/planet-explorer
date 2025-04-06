@@ -31,7 +31,7 @@ const PLANET_DESCRIPTIONS = [
 /**
  * Class representing a planet
  */
-class Planet {
+export class Planet {
   /**
    * Create a planet
    * @param {number} x - X coordinate

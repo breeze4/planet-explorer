@@ -2,10 +2,16 @@
  * @fileoverview Main game logic for the Planet Explorer game
  */
 
+import { Spaceship } from './spaceship';
+import { Planet } from './planet';
+import { EntityManager } from './EntityManager.js';
+import { UI } from './ui'; // Assuming UI is exported from ui.js
+import { createStars, randomInt, distance, clamp, checkCollision } from './utils'; // Assuming these are exported from utils.js
+
 /**
  * Main game class
  */
-class Game {
+export class Game { // Added export
   /**
    * Create the game
    * @param {Object} [options] - Game configuration options
@@ -33,22 +39,29 @@ class Game {
     // Set up game state
     /** @type {UI} */
     this.ui = new UI();
+
+    // Create the Entity Manager
+    /** @type {EntityManager} */
+    this.entityManager = new EntityManager();
     
     // Get initial size scale from UI
     const initialSizeScale = this.ui.getInitialSizeScale();
     const initialShipWidth = this.baseShipWidth * initialSizeScale;
     const initialShipHeight = this.baseShipHeight * initialSizeScale;
     
-    /** @type {Spaceship} */
-    this.spaceship = new Spaceship(
+    // Create player spaceship and add to EntityManager
+    const playerShip = new Spaceship(
       window.innerWidth / 2, 
       window.innerHeight / 2,
       this.config.speedScale, // Pass initial speed scale
       initialShipWidth,       // Pass initial calculated width
       initialShipHeight       // Pass initial calculated height
     );
-    /** @type {Array<Planet>} */
-    this.planets = [];
+    this.entityManager.addSpaceship(playerShip);
+
+    // Removed: this.spaceship = ...
+    // Removed: this.planets = [];
+    
     /** @type {Array<Object>} */
     this.stars = [];
     
@@ -66,9 +79,9 @@ class Game {
     
     // Game state
     /** @type {boolean} */
-    this.isPaused = false;
+    this.isPaused = false; // Pause state remains for now, might be refactored later
     
-    // Generate game world
+    // Generate game world (planets are added to entityManager inside this method)
     this.generateWorld();
     
     // Start the game loop
@@ -85,7 +98,10 @@ class Game {
    */
   setGameSpeed(scale) {
     this.config.speedScale = scale;
-    this.spaceship.setSpeedScale(scale);
+    const playerShip = this.entityManager.getPlayerShip();
+    if (playerShip) {
+        playerShip.setSpeedScale(scale);
+    }
   }
   
   /**
@@ -94,6 +110,7 @@ class Game {
   resizeCanvas() {
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
+    // TODO: Potentially notify UI or other components about resize?
   }
   
   /**
@@ -103,21 +120,26 @@ class Game {
     // Create stars for background
     this.stars = createStars(this.worldWidth, this.worldHeight, 200);
     
-    // Create planets
+    // Create planets and add them to the EntityManager
     const numPlanets = randomInt(8, 12);
+    const currentPlanets = this.entityManager.getAllPlanets(); // Get existing planets for collision check
+
     for (let i = 0; i < numPlanets; i++) {
       // Ensure planets are spread out
       let validPosition = false;
       let x, y, radius;
+      let attempts = 0;
+      const maxAttempts = 50; // Prevent infinite loop
       
-      while (!validPosition) {
+      while (!validPosition && attempts < maxAttempts) {
         radius = randomInt(40, 100);
         x = randomInt(radius * 2, this.worldWidth - radius * 2);
         y = randomInt(radius * 2, this.worldHeight - radius * 2);
+        attempts++;
         
         // Check if this position conflicts with existing planets
         validPosition = true;
-        for (const planet of this.planets) {
+        for (const planet of currentPlanets) {
           const dist = distance(x, y, planet.x, planet.y);
           const minDist = radius + planet.radius + 200; // Add spacing between planets
           
@@ -127,14 +149,23 @@ class Game {
           }
         }
         
-        // Also ensure not too close to starting position
-        const distToStart = distance(x, y, this.worldWidth / 2, this.worldHeight / 2);
+        // Also ensure not too close to starting position (player ship starts near center)
+        const playerShip = this.entityManager.getPlayerShip();
+        const startX = playerShip ? playerShip.x : this.worldWidth / 2;
+        const startY = playerShip ? playerShip.y : this.worldHeight / 2;
+        const distToStart = distance(x, y, startX, startY);
         if (distToStart < 300) {
           validPosition = false;
         }
       }
-      
-      this.planets.push(new Planet(x, y, radius));
+
+      if (validPosition) {
+          const newPlanet = new Planet(x, y, radius);
+          this.entityManager.addPlanet(newPlanet);
+          currentPlanets.push(newPlanet); // Add to local list for subsequent checks in this loop
+      } else {
+          console.warn('Could not find valid position for planet after', maxAttempts, 'attempts.');
+      }
     }
   }
   
@@ -163,33 +194,39 @@ class Game {
    * @param {number} deltaTime - Time since last update
    */
   update(deltaTime) {
-    // Skip update if in planet view
+    // Skip update if in planet view (controlled by UI)
     if (this.ui.isPlanetView()) {
       return;
     }
     
-    // Update spaceship
-    this.spaceship.update();
+    // Update all entities via EntityManager
+    this.entityManager.update(deltaTime, this.worldWidth, this.worldHeight);
+
+    const playerShip = this.entityManager.getPlayerShip();
+    if (!playerShip) return; // Exit if player ship doesn't exist for some reason
     
     // Update camera to follow spaceship
-    this.cameraX = this.spaceship.x - this.canvas.width / 2;
-    this.cameraY = this.spaceship.y - this.canvas.height / 2;
+    this.cameraX = playerShip.x - this.canvas.width / 2;
+    this.cameraY = playerShip.y - this.canvas.height / 2;
     
     // Keep camera within world bounds
     this.cameraX = clamp(this.cameraX, 0, this.worldWidth - this.canvas.width);
     this.cameraY = clamp(this.cameraY, 0, this.worldHeight - this.canvas.height);
     
-    // Keep spaceship within world bounds
-    this.spaceship.x = clamp(this.spaceship.x, 0, this.worldWidth);
-    this.spaceship.y = clamp(this.spaceship.y, 0, this.worldHeight);
+    // Keep spaceship within world bounds (should this be in Spaceship.update or EntityManager?)
+    // Let's keep it here for now, affects the player ship specifically.
+    playerShip.x = clamp(playerShip.x, 0, this.worldWidth);
+    playerShip.y = clamp(playerShip.y, 0, this.worldHeight);
     
     // Update UI elements
-    this.ui.updateBoostMeter(this.spaceship.getBoostPercentage());
+    this.ui.updateBoostMeter(playerShip.getBoostPercentage());
     
     // Check if spaceship is over a planet (for info display without landing)
     let hoveredPlanet = null;
-    for (const planet of this.planets) {
-      if (checkCollision(this.spaceship, planet)) {
+    const allPlanets = this.entityManager.getAllPlanets();
+    for (const planet of allPlanets) {
+      // Assuming checkCollision works with spaceship and planet objects
+      if (checkCollision(playerShip, planet)) { 
         hoveredPlanet = planet;
         break;
       }
@@ -197,8 +234,8 @@ class Game {
     
     // Handle planet hover and landing
     if (hoveredPlanet) {
-      const speedThreshold = this.spaceship.maxSpeed * 0.5;
-      const canLand = Math.abs(this.spaceship.speed) < speedThreshold;
+      const speedThreshold = playerShip.maxSpeed * 0.5;
+      const canLand = Math.abs(playerShip.speed) < speedThreshold;
       
       // Show hover message
       if (canLand) {
@@ -208,23 +245,24 @@ class Game {
       }
       
       // Handle E key press for landing
-      if (this.spaceship.keys.e && canLand) {
-        // Land on planet
-        this.isPaused = true;
+      if (playerShip.keys.e && canLand) {
+        // Land on planet - Pause game
+        this.isPaused = true; 
         
-        // Show planet info after a short delay to prevent immediate E key re-triggering
+        // Show planet info panel via UI
+        // Delay slightly to prevent immediate E key re-trigger from closing the panel
         setTimeout(() => {
           this.ui.showPlanetInfo(hoveredPlanet, () => {
-            // Resume game when leaving planet
-            this.isPaused = false;
-            // We need to manually reset this since we might still be over the planet
-            this.spaceship.keys.e = false;
-            this.ui.showMessage(`Left ${hoveredPlanet.name}`, 3000);
+            // Callback when leaving planet view:
+            this.isPaused = false; // Resume game
+            // Manually reset E key state as the keyup event might have been missed while paused
+            if (playerShip) playerShip.keys.e = false; 
+            this.ui.showMessage(`Left ${hoveredPlanet.name}`, 3000); // Show brief message
           });
-        }, 100);
+        }, 100); 
         
-        // Reset the E key to prevent immediate re-landing
-        this.spaceship.keys.e = false;
+        // Reset the E key immediately after initiating landing to prevent issues
+        playerShip.keys.e = false;
       }
     } else {
       // Clear any hover messages when not over a planet
@@ -240,119 +278,104 @@ class Game {
     this.ctx.fillStyle = '#000000';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Draw stars in background
+    // Draw stars in background (relative to camera)
     this.ctx.fillStyle = '#ffffff';
     for (const star of this.stars) {
-      // Only draw stars that are visible on screen
-      if (
-        star.x >= this.cameraX - 10 &&
-        star.x <= this.cameraX + this.canvas.width + 10 &&
-        star.y >= this.cameraY - 10 &&
-        star.y <= this.cameraY + this.canvas.height + 10
-      ) {
-        this.ctx.beginPath();
-        this.ctx.arc(
-          star.x - this.cameraX,
-          star.y - this.cameraY,
-          star.size,
-          0,
-          Math.PI * 2
-        );
-        this.ctx.fill();
+      const screenX = star.x - this.cameraX;
+      const screenY = star.y - this.cameraY;
+      
+      // Only draw stars that are potentially visible on screen
+      if (screenX >= -1 && screenX <= this.canvas.width + 1 && 
+          screenY >= -1 && screenY <= this.canvas.height + 1) {
+        this.ctx.fillRect(screenX, screenY, star.size, star.size);
       }
     }
     
-    // Draw planets
-    for (const planet of this.planets) {
-      // Only draw planets that are visible on screen
-      if (
-        planet.x + planet.radius + 50 >= this.cameraX &&
-        planet.x - planet.radius - 50 <= this.cameraX + this.canvas.width &&
-        planet.y + planet.radius + 50 >= this.cameraY &&
-        planet.y - planet.radius - 50 <= this.cameraY + this.canvas.height
-      ) {
-        planet.draw(this.ctx, this.cameraX, this.cameraY);
-      }
-    }
-    
-    // Draw spaceship
-    this.spaceship.draw(this.ctx, this.cameraX, this.cameraY);
-    
+    // Delegate rendering of planets and spaceships to EntityManager
+    this.entityManager.render(this.ctx, this.cameraX, this.cameraY);
+
     // Draw minimap
     this.drawMinimap();
+
+    // Note: UI elements (like boost meter, messages, planet info) are likely 
+    // handled by the UI class itself using HTML/CSS, not drawn on canvas here.
   }
   
   /**
-   * Draw a minimap in the corner
+   * Draw the minimap
    */
   drawMinimap() {
-    const mapSize = 150;
-    const mapX = this.canvas.width - mapSize - 20;
-    const mapY = 20;
-    const mapScale = mapSize / this.worldWidth;
-    
-    // Draw map background
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    this.ctx.fillRect(mapX, mapY, mapSize, mapSize);
-    this.ctx.strokeStyle = '#4dacff';
-    this.ctx.strokeRect(mapX, mapY, mapSize, mapSize);
-    
-    // Draw visible area
-    const viewX = mapX + this.cameraX * mapScale;
-    const viewY = mapY + this.cameraY * mapScale;
-    const viewWidth = this.canvas.width * mapScale;
-    const viewHeight = this.canvas.height * mapScale;
-    
+    const minimapSize = 200;
+    const minimapX = this.canvas.width - minimapSize - 20;
+    const minimapY = 20;
+    const padding = 5;
+    const scale = minimapSize / Math.max(this.worldWidth, this.worldHeight);
+
+    // Background
+    this.ctx.fillStyle = 'rgba(50, 50, 50, 0.7)';
+    this.ctx.fillRect(minimapX, minimapY, minimapSize, minimapSize);
     this.ctx.strokeStyle = '#ffffff';
-    this.ctx.strokeRect(viewX, viewY, viewWidth, viewHeight);
-    
+    this.ctx.strokeRect(minimapX, minimapY, minimapSize, minimapSize);
+
     // Draw planets on minimap
-    for (const planet of this.planets) {
-      this.ctx.fillStyle = planet.color;
-      this.ctx.beginPath();
-      this.ctx.arc(
-        mapX + planet.x * mapScale,
-        mapY + planet.y * mapScale,
-        planet.radius * mapScale * 1.5, // Make planets a bit bigger on the map
-        0,
-        Math.PI * 2
-      );
-      this.ctx.fill();
+    const allPlanets = this.entityManager.getAllPlanets();
+    for (const planet of allPlanets) {
+        const mapX = minimapX + planet.x * scale;
+        const mapY = minimapY + planet.y * scale;
+        const mapRadius = Math.max(1, planet.radius * scale); // Ensure minimum size
+        this.ctx.fillStyle = planet.color;
+        this.ctx.beginPath();
+        this.ctx.arc(mapX, mapY, mapRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
+
+    // Draw player spaceship on minimap
+    const playerShip = this.entityManager.getPlayerShip();
+    if (playerShip) {
+        const mapShipX = minimapX + playerShip.x * scale;
+        const mapShipY = minimapY + playerShip.y * scale;
+        this.ctx.fillStyle = '#00ff00'; // Green for player
+        this.ctx.fillRect(mapShipX - 2, mapShipY - 2, 4, 4); // Simple square for ship
     }
     
-    // Draw spaceship on minimap
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.beginPath();
-    this.ctx.arc(
-      mapX + this.spaceship.x * mapScale,
-      mapY + this.spaceship.y * mapScale,
-      3,
-      0,
-      Math.PI * 2
-    );
-    this.ctx.fill();
+    // Optional: Draw other ships if EntityManager supports them
+    // const otherShips = this.entityManager.getAllSpaceships().filter(s => s !== playerShip);
+    // for (const ship of otherShips) {
+    //     const mapShipX = minimapX + ship.x * scale;
+    //     const mapShipY = minimapY + ship.y * scale;
+    //     this.ctx.fillStyle = '#ff0000'; // Red for others (example)
+    //     this.ctx.fillRect(mapShipX - 1, mapShipY - 1, 2, 2);
+    // }
   }
 
   /**
-   * Sets up listeners for UI controls like sliders.
+   * Set up listeners for UI controls
    */
   setupUIListeners() {
-    // Listener for speed changes (assuming ui.js handles this now)
-    this.ui.registerSpeedChangeListener((newScale) => {
-      this.setGameSpeed(newScale); // Reuse existing speed setting logic
+    // Listen for speed slider changes
+    this.ui.onSpeedChange((newSpeedScale) => {
+      this.setGameSpeed(newSpeedScale);
     });
 
-    // Listener for size changes
-    this.ui.registerSizeChangeListener((newScale) => {
-      const newWidth = this.baseShipWidth * newScale;
-      const newHeight = this.baseShipHeight * newScale;
-      this.spaceship.setSize(newWidth, newHeight);
+    // Listen for size slider changes
+    this.ui.onSizeChange((newSizeScale) => {
+      const playerShip = this.entityManager.getPlayerShip();
+      if (playerShip) {
+          const newWidth = this.baseShipWidth * newSizeScale;
+          const newHeight = this.baseShipHeight * newSizeScale;
+          playerShip.setSize(newWidth, newHeight);
+      }
     });
   }
 }
 
-// Start the game when the window loads
-window.addEventListener('load', () => {
-  // Create game with 30% of original speed
-  new Game({ speedScale: 0.3 });
-}); 
+// Helper functions (assuming they are defined elsewhere or in utils.js)
+// function randomColor() { ... }
+// function randomInt(min, max) { ... }
+// function distance(x1, y1, x2, y2) { ... }
+// function clamp(value, min, max) { ... }
+// function checkCollision(obj1, obj2) { ... }
+// function createStars(worldWidth, worldHeight, count) { ... }
+
+// Global instantiation (moved to main.js or similar entry point)
+// const game = new Game(); 

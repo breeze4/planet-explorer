@@ -5,7 +5,7 @@
 /**
  * Class representing the player's spaceship
  */
-class Spaceship {
+export class Spaceship {
   /**
    * Create a spaceship
    * @param {number} x - Initial X coordinate
