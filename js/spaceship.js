@@ -259,6 +259,8 @@ export class Spaceship {
     const screenX = this.x - offsetX;
     const screenY = this.y - offsetY;
     
+    console.log(`  [Spaceship.draw] Drawing spaceship. World: (${this.x.toFixed(2)}, ${this.y.toFixed(2)}), Screen: (${screenX.toFixed(2)}, ${screenY.toFixed(2)}), Sprite Loaded: ${this.spriteLoaded}`);
+    
     ctx.save();
     ctx.translate(screenX, screenY);
     ctx.rotate(this.rotation);

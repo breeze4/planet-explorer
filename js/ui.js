@@ -5,7 +5,7 @@
 /**
  * UI manager for the game
  */
-class UI {
+export class UI {
   /**
    * Create the UI manager
    */
@@ -179,6 +179,14 @@ class UI {
       clearTimeout(this.messageTimeout);
       this.messageTimeout = null;
     }
+  }
+  
+  /**
+   * Gets the current text content of the message display.
+   * @returns {string} The current message text.
+   */
+  getCurrentMessage() {
+    return this.messageDisplay.textContent || '';
   }
   
   /**

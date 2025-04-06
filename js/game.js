@@ -1,12 +1,22 @@
+console.log('[game.js] Script loaded');
+
 /**
  * @fileoverview Main game logic for the Planet Explorer game
  */
 
-import { Spaceship } from './spaceship';
-import { Planet } from './planet';
+import { Spaceship } from './spaceship.js';
+import { Planet } from './planet.js';
 import { EntityManager } from './EntityManager.js';
-import { UI } from './ui'; // Assuming UI is exported from ui.js
-import { createStars, randomInt, distance, clamp, checkCollision } from './utils'; // Assuming these are exported from utils.js
+import { UI } from './ui.js'; // Assuming UI is exported from ui.js
+import { InteractionSystem } from './InteractionSystem.js'; // Import InteractionSystem
+import { createStars, randomInt, distance, clamp, checkCollision } from './utils.js'; // Assuming these are exported from utils.js
+
+// Define game states
+export const GameState = {
+  FLYING: 'FLYING',
+  PLANET_VIEW: 'PLANET_VIEW',
+  // Add other states like MARKET, MINIGAME later
+};
 
 /**
  * Main game class
@@ -44,6 +54,16 @@ export class Game { // Added export
     /** @type {EntityManager} */
     this.entityManager = new EntityManager();
     
+    // Create the Interaction System
+    /** @type {InteractionSystem} */
+    this.interactionSystem = new InteractionSystem(this.entityManager, this.ui, this);
+    
+    // Game space dimensions (Define these BEFORE creating the ship)
+    /** @type {number} */
+    this.worldWidth = 5000;
+    /** @type {number} */
+    this.worldHeight = 5000;
+
     // Get initial size scale from UI
     const initialSizeScale = this.ui.getInitialSizeScale();
     const initialShipWidth = this.baseShipWidth * initialSizeScale;
@@ -51,8 +71,8 @@ export class Game { // Added export
     
     // Create player spaceship and add to EntityManager
     const playerShip = new Spaceship(
-      window.innerWidth / 2, 
-      window.innerHeight / 2,
+      this.worldWidth / 2,  // Use world center X
+      this.worldHeight / 2, // Use world center Y
       this.config.speedScale, // Pass initial speed scale
       initialShipWidth,       // Pass initial calculated width
       initialShipHeight       // Pass initial calculated height
@@ -71,15 +91,9 @@ export class Game { // Added export
     /** @type {number} */
     this.cameraY = 0;
     
-    // Game space dimensions
-    /** @type {number} */
-    this.worldWidth = 5000;
-    /** @type {number} */
-    this.worldHeight = 5000;
-    
-    // Game state
-    /** @type {boolean} */
-    this.isPaused = false; // Pause state remains for now, might be refactored later
+    // Initial Game State
+    /** @type {string} */
+    this.gameState = GameState.FLYING; 
     
     // Generate game world (planets are added to entityManager inside this method)
     this.generateWorld();
@@ -90,6 +104,20 @@ export class Game { // Added export
 
     // Register UI listeners
     this.setupUIListeners();
+  }
+  
+  /**
+   * Set the current game state.
+   * @param {string} newState - The new game state (e.g., GameState.FLYING).
+   */
+  setGameState(newState) {
+    // Optional: Add validation or transition logic here if needed
+    if (GameState[newState]) {
+      this.gameState = newState;
+      console.log(`Game state changed to: ${newState}`); // For debugging
+    } else {
+      console.error(`Attempted to set invalid game state: ${newState}`);
+    }
   }
   
   /**
@@ -174,12 +202,14 @@ export class Game { // Added export
    * @param {number} timestamp - Current timestamp
    */
   gameLoop(timestamp) {
+    console.log(`[Game.gameLoop] Frame: ${timestamp}`);
+
     // Calculate delta time
     const deltaTime = timestamp - this.lastTime;
     this.lastTime = timestamp;
     
-    // Only update if game is not paused
-    if (!this.isPaused) {
+    // Only update game logic when in FLYING state
+    if (this.gameState === GameState.FLYING) {
       this.update(deltaTime);
     }
     
@@ -194,16 +224,14 @@ export class Game { // Added export
    * @param {number} deltaTime - Time since last update
    */
   update(deltaTime) {
-    // Skip update if in planet view (controlled by UI)
-    if (this.ui.isPlanetView()) {
-      return;
-    }
-    
     // Update all entities via EntityManager
     this.entityManager.update(deltaTime, this.worldWidth, this.worldHeight);
 
     const playerShip = this.entityManager.getPlayerShip();
     if (!playerShip) return; // Exit if player ship doesn't exist for some reason
+    
+    // Update the Interaction System
+    this.interactionSystem.update(deltaTime);
     
     // Update camera to follow spaceship
     this.cameraX = playerShip.x - this.canvas.width / 2;
@@ -220,54 +248,6 @@ export class Game { // Added export
     
     // Update UI elements
     this.ui.updateBoostMeter(playerShip.getBoostPercentage());
-    
-    // Check if spaceship is over a planet (for info display without landing)
-    let hoveredPlanet = null;
-    const allPlanets = this.entityManager.getAllPlanets();
-    for (const planet of allPlanets) {
-      // Assuming checkCollision works with spaceship and planet objects
-      if (checkCollision(playerShip, planet)) { 
-        hoveredPlanet = planet;
-        break;
-      }
-    }
-    
-    // Handle planet hover and landing
-    if (hoveredPlanet) {
-      const speedThreshold = playerShip.maxSpeed * 0.5;
-      const canLand = Math.abs(playerShip.speed) < speedThreshold;
-      
-      // Show hover message
-      if (canLand) {
-        this.ui.showMessage(`Press E to land on ${hoveredPlanet.name}`, 0); // Keep showing while hovering
-      } else {
-        this.ui.showMessage(`Slow down to land on ${hoveredPlanet.name}`, 0);
-      }
-      
-      // Handle E key press for landing
-      if (playerShip.keys.e && canLand) {
-        // Land on planet - Pause game
-        this.isPaused = true; 
-        
-        // Show planet info panel via UI
-        // Delay slightly to prevent immediate E key re-trigger from closing the panel
-        setTimeout(() => {
-          this.ui.showPlanetInfo(hoveredPlanet, () => {
-            // Callback when leaving planet view:
-            this.isPaused = false; // Resume game
-            // Manually reset E key state as the keyup event might have been missed while paused
-            if (playerShip) playerShip.keys.e = false; 
-            this.ui.showMessage(`Left ${hoveredPlanet.name}`, 3000); // Show brief message
-          });
-        }, 100); 
-        
-        // Reset the E key immediately after initiating landing to prevent issues
-        playerShip.keys.e = false;
-      }
-    } else {
-      // Clear any hover messages when not over a planet
-      this.ui.clearMessage();
-    }
   }
   
   /**

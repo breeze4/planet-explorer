@@ -120,12 +120,16 @@ export class EntityManager {
      * @param {number} offsetY - The camera Y offset.
      */
     render(ctx, offsetX, offsetY) {
+        console.log(`[EntityManager.render] Rendering entities. Camera Offset: (${offsetX.toFixed(2)}, ${offsetY.toFixed(2)})`);
+
         // Render planets first
+        console.log(`[EntityManager.render] Rendering ${this.planets.length} planets.`);
         for (const planet of this.planets) {
             planet.draw(ctx, offsetX, offsetY);
         }
 
         // Render spaceships
+        console.log(`[EntityManager.render] Rendering ${this.spaceships.length} spaceships.`);
         for (const ship of this.spaceships) {
             ship.draw(ctx, offsetX, offsetY);
         }

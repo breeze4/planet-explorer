@@ -10,7 +10,7 @@
  * @param {number} y2 - y coordinate of second point
  * @returns {number} The distance between the points
  */
-function distance(x1, y1, x2, y2) {
+export function distance(x1, y1, x2, y2) {
   return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 }
 
@@ -20,7 +20,7 @@ function distance(x1, y1, x2, y2) {
  * @param {Object} obj2 - Second object with x, y, and radius properties
  * @returns {boolean} True if objects are colliding
  */
-function checkCollision(obj1, obj2) {
+export function checkCollision(obj1, obj2) {
   const dist = distance(obj1.x, obj1.y, obj2.x, obj2.y);
   return dist < obj1.radius + obj2.radius;
 }
@@ -31,7 +31,7 @@ function checkCollision(obj1, obj2) {
  * @param {number} max - Maximum value
  * @returns {number} Random integer between min and max
  */
-function randomInt(min, max) {
+export function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
@@ -39,7 +39,7 @@ function randomInt(min, max) {
  * Generates a random color in the format 'rgb(r, g, b)'
  * @returns {string} Random color
  */
-function randomColor() {
+export function randomColor() {
   const r = randomInt(0, 255);
   const g = randomInt(0, 255);
   const b = randomInt(0, 255);
@@ -53,7 +53,7 @@ function randomColor() {
  * @param {number} count - Number of stars to create
  * @returns {Array<Object>} Array of star objects with x, y, size properties
  */
-function createStars(width, height, count) {
+export function createStars(width, height, count) {
   const stars = [];
   for (let i = 0; i < count; i++) {
     stars.push({
@@ -72,6 +72,6 @@ function createStars(width, height, count) {
  * @param {number} max - Maximum value
  * @returns {number} Clamped value
  */
-function clamp(value, min, max) {
+export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 } 

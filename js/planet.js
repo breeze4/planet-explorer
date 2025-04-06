@@ -2,6 +2,8 @@
  * @fileoverview Planet class for the Planet Explorer game
  */
 
+import { randomColor, randomInt } from './utils.js';
+
 /**
  * Planet names for random generation
  * @type {Array<string>}
@@ -47,6 +49,10 @@ export class Planet {
     this.name = PLANET_NAMES[randomInt(0, PLANET_NAMES.length - 1)];
     this.description = PLANET_DESCRIPTIONS[randomInt(0, PLANET_DESCRIPTIONS.length - 1)];
     
+    // TODO: Refactor - Add market and resource data
+    this.marketData = null; // Placeholder for market info (e.g., prices, inventory)
+    this.resourceData = null; // Placeholder for resource info (e.g., type, abundance)
+    
     // Create a unique atmospheric ring
     this.ringColor = randomColor();
     this.ringSize = this.radius * (1.2 + Math.random() * 0.3);
@@ -75,6 +81,8 @@ export class Planet {
     const screenX = this.x - offsetX;
     const screenY = this.y - offsetY;
     
+    console.log(`  [Planet.draw] Drawing '${this.name}'. World: (${this.x.toFixed(2)}, ${this.y.toFixed(2)}), Radius: ${this.radius}, Screen: (${screenX.toFixed(2)}, ${screenY.toFixed(2)})`);
+
     // Draw ring if planet has rings
     if (this.hasRings) {
       ctx.beginPath();
