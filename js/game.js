@@ -22,9 +22,6 @@ class Game {
     /** @type {CanvasRenderingContext2D} */
     this.ctx = this.canvas.getContext('2d');
     
-    // Set up speed controls
-    this.setupSpeedControls();
-    
     // Store base ship dimensions
     this.baseShipWidth = 42;
     this.baseShipHeight = 21;
@@ -80,25 +77,6 @@ class Game {
 
     // Register UI listeners
     this.setupUIListeners();
-  }
-  
-  /**
-   * Set up the speed control slider
-   */
-  setupSpeedControls() {
-    this.speedSlider = document.getElementById('speed-slider');
-    this.speedValue = document.getElementById('speed-value');
-    
-    // Set initial value
-    this.speedSlider.value = this.config.speedScale * 100;
-    this.speedValue.textContent = `${Math.round(this.config.speedScale * 100)}%`;
-    
-    // Add event listener for speed changes
-    this.speedSlider.addEventListener('input', (e) => {
-      const newScale = parseInt(e.target.value) / 100;
-      this.setGameSpeed(newScale);
-      this.speedValue.textContent = `${e.target.value}%`;
-    });
   }
   
   /**
